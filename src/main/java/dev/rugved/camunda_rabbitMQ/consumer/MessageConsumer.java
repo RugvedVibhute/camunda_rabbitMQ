@@ -21,7 +21,8 @@ public class MessageConsumer {
     private CorrelationIdService correlationIdService;
 
     @RabbitListener(queues = "Test_Queue")
-    public void receiveMessage(Message message, Channel channel) throws IOException {
+    public synchronized void receiveMessage(Message message, Channel channel) throws IOException {
+
         try {
             String body = new String(message.getBody(), StandardCharsets.UTF_8);
             JsonNode jsonNode = objectMapper.readTree(body);
@@ -32,10 +33,17 @@ public class MessageConsumer {
                 // Process message
                 System.out.println("Processing message: " + jsonNode.toString());
 
+                // Wrap the response in an additional object
+                String wrappedResponse = "{ \"rabbitmqResponse\": " + jsonNode.toString() + " }";
+
+                // Store the wrapped response in the service to be used by RabbitmqWorker
+                correlationIdService.setRabbitmqResponse(wrappedResponse);
+
                 // Acknowledge the message after successful processing
                 channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
+
             } else {
-                // Reject the message and requeue it
+                // Requeue the message if ID does not match
                 System.out.println("ID does not match. Requeuing message: " + jsonNode.toString());
                 channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, true);
             }

@@ -1,5 +1,6 @@
 package dev.rugved.camunda_rabbitMQ.worker;
 
+import dev.rugved.camunda_rabbitMQ.consumer.MessageConsumer;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.annotation.JobWorker;
@@ -15,6 +16,9 @@ public class RabbitmqWorker {
     @Autowired
     private CorrelationIdService correlationIdService;
 
+    @Autowired
+    private MessageConsumer messageConsumer;
+
     @JobWorker(type = "rabbitMQWorker")
     public void rabbitmqWorker(final JobClient client, final ActivatedJob job) {
         Map<String, Object> variables = job.getVariablesAsMap();
@@ -22,5 +26,18 @@ public class RabbitmqWorker {
         System.out.println("ID set in RabbitmqWorker: " + id);
         correlationIdService.setCorrelationId(id);
 
+        try {
+            // Get the rabbitmqResponse from CorrelationIdService
+            String rabbitmqResponse = correlationIdService.getRabbitmqResponse();
+
+            // Complete the job with rabbitmqResponse
+            client.newCompleteCommand(job.getKey())
+                    .variables(rabbitmqResponse)
+                    .send()
+                    .join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Job completion interrupted: " + e.getMessage());
+        }
     }
 }
