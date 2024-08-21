@@ -35,8 +35,11 @@ public class RabbitmqWorker {
                     .variables(rabbitmqResponse)
                     .send()
                     .join();
+
+            // Reset CorrelationIdService after job completion
+            correlationIdService.reset();
+
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
             System.err.println("Job completion interrupted: " + e.getMessage());
         }
     }

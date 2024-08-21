@@ -29,6 +29,9 @@ public class MessageConsumer {
             int messageId = jsonNode.get("id").asInt();
             int correlationId = correlationIdService.getCorrelationId();
 
+            System.out.println("Received message with ID: " + messageId);
+            System.out.println("Correlation ID: " + correlationId);
+
             if (messageId == correlationId) {
                 // Process message
                 System.out.println("Processing message: " + jsonNode.toString());
@@ -41,7 +44,6 @@ public class MessageConsumer {
 
                 // Acknowledge the message after successful processing
                 channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
-
             } else {
                 // Requeue the message if ID does not match
                 System.out.println("ID does not match. Requeuing message: " + jsonNode.toString());
